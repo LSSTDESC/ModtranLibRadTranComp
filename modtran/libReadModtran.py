@@ -4,7 +4,9 @@ libReadModtran.py : python library Modtran asciii file
 
 - author Sylvie Dagoret-Campagne
 - affiliation : LAL/IN2P3/CNRS
-- date : July 6th 2018
+- date : July 9th 2018
+
+Adapted to run in python3
 
 Found the technique to read Modtran from python at : 
 http://nullege.com/codes/show/src@p@y@pyradi-0.1.44@pyradi@rymodtran.py
@@ -14,13 +16,26 @@ I have adapted it to read our Modtran LSST files
 import numpy as np
 import sys
 import os
-from string import maketrans
-import StringIO
+import string
 
+# used for python 2
+#import StringIO
 
+# replaced for python3
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO,BytesIO
+
+#-------------------------------------------    
+#def unicode(bytedata):
+#    udata = bytedata.decode('UTF-8')
+#    return udata
+#-----------------------------------------------
+    
 #--------------------------------------------------------------------------
 
-##http://stackoverflow.com/questions/1324067/how-do-i-get-str-translate-to-work-with-unicode-strings
+##http://stackoverflow.com/questions/1324067/how-do-i-get-str-translate-to-work-with--strings
 def fixHeaders(instr):
     """
     Modifies the column header string to be compatible with numpy column lookup.
@@ -39,12 +54,16 @@ def fixHeaders(instr):
     intab = u"+-[]@"
     outtab = u"pmbba"
   
-    if isinstance(instr, unicode):
-        translate_table = dict((ord(char), unicode(outtab)) for char in intab)
-    else:
-        assert isinstance(instr, str)
-        translate_table = maketrans(intab, outtab)
+    #if isinstance(instr, unicode):
+    #    translate_table = dict((ord(char), unicode(outtab)) for char in intab)
+    #else:
+    #    assert isinstance(instr, str)
+    #    translate_table = str.maketrans(intab, outtab)
+    #return instr.translate(translate_table)
+
+    translate_table = str.maketrans(intab, outtab)
     return instr.translate(translate_table)
+
 #------------------------------------------------------------------------------  
 def fixHeadersList(headcol):
     """
@@ -135,7 +154,8 @@ def loadtape7(filename, colspec = []):
   
     """
   
-    infile = open(filename, 'r')
+    infile = open(filename, 'r')                    # old python2
+    #infile = open(filename, 'r', encoding='UTF-8')   # python3
     idata = {}
     lines = infile.readlines()#.strip()
     infile.close()
@@ -169,6 +189,8 @@ def loadtape7(filename, colspec = []):
     else:
         colHead = colHead1st
         deltaHead = 0
+        
+   
   
     #different IEMSCT values have different column formats
     # some cols have headers and some are empty.
@@ -185,14 +207,18 @@ def loadtape7(filename, colspec = []):
     # build a new data set with appropriate column header and numeric data
     #change all - and +  to alpha to enable table lookup
     colHead = fixHeadersList(colHead)
+    
+    colHeadNames=",".join(colHead)    # ADDED for python3 version
   
-    s = ' '.join(colHead) + '\n'
+    #s = ' '.join(colHead) + '\n' BAD FOR PYTHON3
     # now append the numeric data, ignore the original header and last row in the file
-    s = s + ''.join(lines[headline+1+deltaHead:-1])
-  
+    #s = s + ''.join(lines[headline+1+deltaHead:-1])
+    s = " ".join(lines[headline+1+deltaHead:-1])         # Good for python 3 : Exclude header column  
+
     #read the string in from a StringIO in-memory file
-    lines = np.ndfromtxt(StringIO.StringIO(s), dtype=None,  names=True)
-  
+    #lines = np.ndfromtxt(StringIO.StringIO(s), dtype=None,  names=True)   NOT WORKING FOR PYTHON 3
+    lines=np.genfromtxt(BytesIO(s.encode()),names=colHeadNames)           # SDC : replaced by this
+
     #extract the wavenumber col as the first column in the new table
     coldata= lines[fixHeaders(colspec[0])].reshape(-1, 1)
     # then append the other required columns
@@ -202,10 +228,9 @@ def loadtape7(filename, colspec = []):
     return coldata
 #---------------------------------------------------------------------------------
 def usage():
-    print sys.argv[1] + 'modtran-ascii-filename'
-    print "where modtran-ascii-filename is the filename of ascii modtran file"
-    print "  for example : modtran-ascii-filename = Pachon_MODTRAN.10.7sc "
-    print " the output excel file will be modtran-ascii-filename.xls"
+    print(sys.argv[1] + 'modtran-ascii-filename')
+    print("where modtran-ascii-filename is the filename of ascii modtran file")
+    print("  for example : modtran-ascii-filename = Pachon_MODTRAN.10.7sc ")
     return
 #--------------------------------------------------------------------------------
 
