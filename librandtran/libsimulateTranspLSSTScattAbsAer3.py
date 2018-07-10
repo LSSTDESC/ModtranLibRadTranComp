@@ -48,7 +48,7 @@ LSST_Altitude = 2.750  # in k meters from astropy package (Cerro Pachon)
 #LSST_Altitude =2.850
 OBS_Altitude = str(LSST_Altitude)
 
-TOPDIR='simulations/RT/2.0.1/LS'
+TOPDIR='/scratch/dagoret/simulations/RT/2.0.1/LS'
 
 
 
