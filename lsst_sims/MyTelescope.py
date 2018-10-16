@@ -479,7 +479,34 @@ class Telescope(Throughputs):
             
             print('CalcMyABMagnitudes :: band = {}, mag1={} , mag2={} , deltaM(me)={}, mag3(lsst)={}'.format(i,mag1,mag2,mag1-mag2,mag3))
         return np.array(all_magAB)
-    
+    #---------------------------------------------------------------------
+    def CalcMyABMagnitude_filter(self,band):
+        """
+        CalcMyABMagnitudes_filter()
+        
+        - author : Sylvie Dagoret-Campagne
+        - affiliation : LAL/IN2P3/CNRS/FRANCE
+        - date   : July 4th 2018
+        
+        Calculate the magnitude in AB system unit for all bands.
+        """
+       
+        
+        filter=self.lsst_atmos[band]
+            
+        # resample the wavelength each time for the filter
+        wl,fnu=self.sed.getSED_fnu()
+        wavelen, fnu = self.sed.resampleSED(wl, fnu, wavelen_match=filter.wavelen)
+        fnu=np.nan_to_num(fnu)  # SDC(29/06/18) reset to 0 out of band where there are nan
+            
+        self.sed=Sed(wavelen=wavelen,fnu=fnu,name=self.sed.name)
+            
+        mag1=-2.5*np.log10(self.Calc_Integ_Sed(self.sed,filter))
+        mag2=-2.5*np.log10(self.Calc_Integ_Sed(self.sedAB0,filter))
+        mag3=self.sed.calcMag(bandpass=filter,wavelen=wavelen,fnu=fnu)
+            
+        #print('CalcMyABMagnitude_filter :: band = {}, mag1={} , mag2={} , deltaM(me)={}, mag3(lsst)={}'.format(band,mag1,mag2,mag1-mag2,mag3))
+        return mag3   
     
     #---------------------------------------------------------------
     def CalcMyABMagnitudesErrors(self):
